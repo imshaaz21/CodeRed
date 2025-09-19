@@ -582,7 +582,7 @@ const App = () => {
     return `${minutes}:${secs}`;
   }, []);
 
-  const resultMessage = useMemo(() => {
+  const timeoutMessage = useMemo(() => {
     if (!gameState || gameState.status !== "completed" || !gameState.result) {
       return null;
     }
@@ -602,9 +602,69 @@ const App = () => {
   const opponentClockClass = opponentTurn && gameState?.status === "active" ? "clock-value clock-value--active" : "clock-value";
 
   const gameCompleted = gameState?.status === "completed";
-  const didWin = Boolean(playerId && gameState?.result?.winner === playerId);
-  const resultTitle = gameCompleted ? (didWin ? "You Win!" : "You Lose") : "";
-  const resultSubtext = resultMessage ?? (gameState?.result?.reason ? `Reason: ${gameState.result.reason}` : "Thanks for playing!");
+  const resultData = gameState?.result ?? null;
+  const isDraw = Boolean(resultData && (resultData.reason === "draw" || !resultData.winner));
+  const didWin = Boolean(!isDraw && playerId && resultData?.winner === playerId);
+  const didLose = Boolean(!isDraw && playerId && resultData?.loser === playerId);
+
+  const resultTitle = useMemo(() => {
+    if (!gameCompleted) {
+      return "";
+    }
+    if (isDraw) {
+      return "It's a Draw";
+    }
+    if (didWin) {
+      return "You Win!";
+    }
+    if (didLose) {
+      return "You Lose";
+    }
+    return "Game Over";
+  }, [didLose, didWin, gameCompleted, isDraw]);
+
+  const reasonText = useMemo(() => {
+    if (!resultData) {
+      return "Thanks for playing.";
+    }
+    if (timeoutMessage) {
+      return timeoutMessage;
+    }
+    switch (resultData.reason) {
+      case "consecutive passes":
+        return "Game ended after six consecutive passes.";
+      case "tiles exhausted":
+        return "All tiles were played.";
+      case "draw":
+        return "Scores are tied.";
+      case "timeout":
+        return didWin ? "Opponent ran out of time." : didLose ? "You ran out of time." : "Time expired.";
+      default:
+        return resultData.reason || "Game complete.";
+    }
+  }, [didLose, didWin, resultData, timeoutMessage]);
+
+  const scoreSummary = useMemo(() => {
+    if (!gameState || !playerId) {
+      return "";
+    }
+    const yourScore = gameState.scores[playerId] ?? 0;
+    const opponentTotal = gameState.scores[gameState.opponent.playerId] ?? 0;
+    if (isDraw) {
+      return `Both players scored ${yourScore}.`;
+    }
+    if (didWin) {
+      return `You won ${yourScore} – ${opponentTotal}.`;
+    }
+    if (didLose) {
+      return `${gameState.opponent.displayName} won ${opponentTotal} – ${yourScore}.`;
+    }
+    return `Final score: ${yourScore} – ${opponentTotal}.`;
+  }, [didLose, didWin, gameState, isDraw, playerId]);
+
+  const resultSubtext = useMemo(() => {
+    return [reasonText, scoreSummary].filter(Boolean).join(" ").trim();
+  }, [reasonText, scoreSummary]);
 
   const handleRestart = useCallback(() => {
     if (websocketRef.current) {
@@ -786,7 +846,7 @@ const App = () => {
               </p>
               {gameState.status === "completed" && (
                 <p className="game-complete">
-                  Game over{resultMessage ? ` — ${resultMessage}` : ""}
+                  Game over{resultSubtext ? ` — ${resultSubtext}` : ""}
                 </p>
               )}
             </section>

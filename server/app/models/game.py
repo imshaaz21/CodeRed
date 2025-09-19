@@ -258,6 +258,7 @@ class Game:
         self._advance_turn()
         if self.passes_in_a_row >= 6:
             self.status = "completed"
+            self._finalize_scores("consecutive passes")
         return move_record
 
     def exchange_tiles(self, player_id: str, letters: Sequence[str]) -> MoveRecord:
@@ -314,6 +315,7 @@ class Game:
         self._advance_turn()
         if self.passes_in_a_row >= 6:
             self.status = "completed"
+            self._finalize_scores("consecutive passes")
         return move_record
 
     # ------------------------------------------------------------------
@@ -532,6 +534,7 @@ class Game:
         rack_empty = all(len(player.rack) == 0 for player in self.players.values())
         if rack_empty and len(self.tile_bag) == 0:
             self.status = "completed"
+            self._finalize_scores("tiles exhausted")
 
     # ------------------------------------------------------------------
     # State serialization
@@ -598,3 +601,24 @@ class Game:
             "serverTime": server_time,
             "result": self.result,
         }
+
+    def _finalize_scores(self, reason: str) -> None:
+        if self.result is not None:
+            return
+        scores = {player_id: state.score for player_id, state in self.players.items()}
+        max_score = max(scores.values())
+        leaders = [player_id for player_id, score in scores.items() if score == max_score]
+        if len(leaders) == 1:
+            winner = leaders[0]
+            loser = next(pid for pid in self.player_order if pid != winner)
+            self.result = {
+                "winner": winner,
+                "loser": loser,
+                "reason": reason,
+            }
+        else:
+            self.result = {
+                "winner": "",
+                "loser": "",
+                "reason": "draw",
+            }
