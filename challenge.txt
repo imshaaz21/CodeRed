@@ -1,0 +1,151 @@
+The Challenge
+Request approvalRequest approval
+SignaturesSignatures
+Create a two player scrabble game
+
+Scrabble is a word game where two players score points by placing letter tiles onto a 15x15 grid to form words. The objective is to achieve the highest score by utilizing letter values and premium squares on the board. The game requires a combination of vocabulary, strategy, tactics and luck.
+
+For a comprehensive guide to the rules, please refer to this resource: Scrabble Rules.
+Not Allowed:
+
+To copy paste code from Macondo, Magpie , or Quackle
+Whatsapp
+Please join this group for updates : 
+
+Code red 
+The dictionary
+CSW24.txt 
+Challenge Overview
+
+The challenge is designed to test a participants ability to leverage AI tools to write an application in few hours which if it had been written manually could take months of effort.
+
+ 
+Stage 1: Core Game & User Interface
+
+ 
+
+Objective: Create a foundational two-player Scrabble game with a central server to manage game logic and a client-side interface for player interaction.
+
+ 
+Game Core & Server-Side Logic
+
+ 
+
+    Architecture: The application must be a client-server model where the server is the authoritative source for the game state, rules, and all random events.
+
+    Matchmaking: A central lobby will place a player into a queue. As soon as a second player joins, a new game instance will be created, and the two players will be matched.
+
+    Game State Management: The server must manage the complete state of each game, including the board, the tile bag, player racks, and scores.
+
+    Game Rules: The server must enforce all core Scrabble rules:
+
+        The starting player is chosen randomly.
+
+        Tiles are drawn randomly from a central tile bag.
+
+        All moves must form a word in a single horizontal or vertical line.
+
+        Each new word must connect to an existing tile on the board, except for the first move, which must cover the center star.
+
+        All words created by the move (cross-words) must be valid according to the dictionary.
+
+    Concurrency: The server must be capable of hosting multiple games in parallel.
+
+ 
+User Interaction
+
+ 
+
+The client-side interface will provide the following interaction methods for a player's turn:
+
+    Tile Placement:
+
+        The user clicks on an empty square to initiate a move, marking the starting point of the word and setting the initial direction (either horizontal or vertical).
+
+        A subsequent click on the same square will toggle the direction.
+
+        The user can then type letters from their keyboard to place tiles from their rack along the selected path.
+
+        Blank Tile: To place a blank tile and assign it a letter value, the user will press the Shift key while typing the desired letter. This is particularly important when the player has both a regular tile and a blank tile that could represent the same letter.
+
+    Auto-Skip: If the player's chosen path includes a square already occupied by a tile, the user's letter input will automatically be placed on the next available empty square in the sequence.
+
+    Tile Rack Management:
+
+        The user must be able to drag and drop tiles on their rack to rearrange them for strategic planning.
+
+        A dedicated control or button must be available to shuffle the tiles on the rack randomly.
+
+    Finalizing a Move:
+
+        Pressing the Enter key submits the move for validation. The server will then process the move.
+
+        If the user presses Enter without placing any tiles, a dialog box will appear asking for confirmation to pass the turn. If confirmed, the turn is passed; otherwise, the action is ignored.
+
+    Exchanging Tiles:
+
+        Typing the letter "X" on the keyboard without having any tiles placed on the board will trigger a separate dialog. Alternatively an exchange button can be provided
+
+        This dialog will allow the user to select tiles from their rack to exchange with tiles from the bag. This action results in a passed turn.
+
+ 
+Client-Side Validations & Warnings
+
+ 
+
+To provide a smooth user experience and immediate feedback, the client-side UI must display a discrete warning message for the following invalid actions:
+
+    Invalid Turn: The player attempts to place tiles or perform any action when it is not their turn.
+
+    Invalid Tile: The player attempts to place a letter that does not correspond to a tile currently in their rack.
+
+    Word Off Board: The player's typed word would extend beyond the edge of the board.
+
+    Missing Starting Point: The player attempts to type a letter without first clicking on a starting square on the board.
+
+ 
+Stage 2: Secure Game Clock
+
+ 
+
+Objective: Implement a secure, server-side timer to govern the duration of each game.
+
+    Server-Side Timer: A maximum time of 10 minutes will be allocated per player for the entire game. The game clock must be managed exclusively on the server to prevent any client-side manipulation or cheating.
+
+    Game End: If a player’s timer reaches zero on the server, they will automatically lose the game.
+
+    Synchronization: The client-side application will display the remaining time, but it must be a visual representation of the server's authoritative clock.
+
+ 
+Stage 3: Bot Player
+
+ 
+
+Objective: Introduce a simple AI bot that can play valid moves against human opponents.
+
+    Availability: A bot instance will be available in the lobby at all times. Any player who enters the lobby will be automatically matched against the bot.
+
+    Concurrency: Multiple concurrent games against the bot must be supported.
+
+    Move Logic: The bot's logic is only required to find and play a valid move. The score of the move is not a factor in its decision-making.
+
+    Performance: The bot must make each move within 30 seconds.
+
+ 
+Stage 4: Advanced Bot
+
+ 
+
+Objective: Develop a highly intelligent AI bot capable of consistently defeating a majority of human players.
+
+    Strategic Play: The bot’s strategy must go beyond simple, immediate point maximization. This may include:
+
+        Heuristics for tile management (e.g., getting rid of difficult tiles).
+
+        Strategic board control to set up future high-scoring moves or block the opponent.
+
+        Efficient word generation algorithms (e.g., using a Trie or DAWG).
+
+        Consideration for multi-turn look-ahead to optimize long-term outcomes.
+
+
