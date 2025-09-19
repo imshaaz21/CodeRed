@@ -399,7 +399,16 @@ const App = () => {
       setCursor(anchor);
     } catch (error) {
       console.error(error);
-      showWarning("SERVER_ERROR");
+      if (axios.isAxiosError(error) && error.response?.data?.detail) {
+        const detail = String(error.response.data.detail);
+        if (detail.toLowerCase().includes("valid word") || detail.toLowerCase().includes("not a valid")) {
+          showWarning("SERVER_ERROR", "That word isn't in the dictionary.");
+        } else {
+          showWarning("SERVER_ERROR", detail);
+        }
+      } else {
+        showWarning("SERVER_ERROR");
+      }
     } finally {
       setBusyAction(false);
     }
@@ -591,6 +600,33 @@ const App = () => {
   const opponentTurn = gameState ? gameState.turn === gameState.opponent.playerId : false;
   const myClockClass = isMyTurn && gameState?.status === "active" ? "clock-value clock-value--active" : "clock-value";
   const opponentClockClass = opponentTurn && gameState?.status === "active" ? "clock-value clock-value--active" : "clock-value";
+
+  const gameCompleted = gameState?.status === "completed";
+  const didWin = Boolean(playerId && gameState?.result?.winner === playerId);
+  const resultTitle = gameCompleted ? (didWin ? "You Win!" : "You Lose") : "";
+  const resultSubtext = resultMessage ?? (gameState?.result?.reason ? `Reason: ${gameState.result.reason}` : "Thanks for playing!");
+
+  const handleRestart = useCallback(() => {
+    if (websocketRef.current) {
+      websocketRef.current.close();
+      websocketRef.current = null;
+    }
+    setPhase("join");
+    setPlayerId(null);
+    setGameId(null);
+    setGameState(null);
+    setPlacements([]);
+    setAnchor(null);
+    setDirection("horizontal");
+    setCursor(null);
+    setExchangeSelection([]);
+    setExchangeOpen(false);
+    setBusyAction(false);
+    setPassConfirmOpen(false);
+    setRackOrder([]);
+    setWarning(null);
+    setMatchMode("multi");
+  }, []);
 
   const handleTileDrop = useCallback(
     ({ row, col, rackIndex, letter, isBlank }: DroppedTilePayload) => {
@@ -838,6 +874,17 @@ const App = () => {
         }}
         busy={busyAction}
       />
+      {gameCompleted && (
+        <div className="result-overlay">
+          <div className="result-card">
+            <h2>{resultTitle}</h2>
+            <p>{resultSubtext}</p>
+            <button type="button" onClick={handleRestart}>
+              Play Again
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

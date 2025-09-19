@@ -24,6 +24,7 @@ game_manager = GameManager()
 game_service = GameService(game_manager, connections)
 clock_manager = ClockManager(game_manager, game_service)
 bot_manager = BotManager(game_manager, game_service)
+game_service.attach_bot_manager(bot_manager)
 lobby_manager = LobbyManager(connections, game_manager, clock_manager, bot_manager)
 
 
