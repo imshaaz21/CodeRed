@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Sequence
+from typing import Sequence, TYPE_CHECKING
 
 from fastapi import HTTPException
 
@@ -9,11 +9,18 @@ from ..models.game import Game, MoveError, Placement
 from .connections import ConnectionManager
 from .game_manager import GameManager
 
+if TYPE_CHECKING:  # pragma: no cover - type hints only
+    from .bot_manager import BotManager
+
 
 class GameService:
     def __init__(self, game_manager: GameManager, connections: ConnectionManager) -> None:
         self.game_manager = game_manager
         self.connections = connections
+        self._bot_manager: "BotManager" | None = None
+
+    def attach_bot_manager(self, bot_manager: "BotManager") -> None:
+        self._bot_manager = bot_manager
 
     async def _get_game(self, game_id: str) -> Game:
         game = await self.game_manager.get_game(game_id)
@@ -86,3 +93,5 @@ class GameService:
             )
         if payloads:
             await asyncio.gather(*payloads)
+        if game.status != "active" and self._bot_manager is not None:
+            await self._bot_manager.stop(game.id)

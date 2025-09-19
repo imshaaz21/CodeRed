@@ -179,6 +179,61 @@ body {
   color: #2563eb;
 }
 
+.result-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.6);
+  z-index: 20;
+  padding: 1.5rem;
+}
+
+.result-card {
+  background: white;
+  border-radius: 1rem;
+  padding: 2rem;
+  min-width: 20rem;
+  max-width: min(32rem, 90vw);
+  text-align: center;
+  box-shadow: 0 25px 60px rgba(15, 23, 42, 0.25);
+  border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.result-card h2 {
+  margin: 0;
+  font-size: 1.9rem;
+  color: #0f172a;
+}
+
+.result-card p {
+  margin: 0;
+  color: #475569;
+  font-size: 1rem;
+}
+
+.result-card button {
+  align-self: center;
+  padding: 0.65rem 1.6rem;
+  border-radius: 0.75rem;
+  background: #2563eb;
+  color: white;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.result-card button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.25);
+}
+
 .history li {
   font-size: 0.9rem;
   color: #475569;
@@ -251,22 +306,24 @@ body {
   font-weight: 700;
   font-size: 1.1rem;
   border: 1px solid transparent;
-  color: #1f2937;
+  color: rgba(31, 41, 55, 0.55);
   background: rgba(255, 255, 255, 0.9);
 }
 
 .tile--locked {
   background: #f8fafc;
   border-color: #94a3b8;
+  color: #1f2937;
 }
 
 .tile--draft {
   background: #bfdbfe;
   border-color: #2563eb;
+  color: #1d4ed8;
 }
 
 .tile--blank {
-  color: #334155;
+  color: rgba(51, 65, 85, 0.6);
   font-style: italic;
 }
 
