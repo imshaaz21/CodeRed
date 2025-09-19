@@ -25,6 +25,8 @@ export interface GameResult {
   reason: string;
 }
 
+export type LobbyMode = "multi" | "bot" | "bot-advanced";
+
 export interface GameStatePayload {
   gameId: string;
   status: "active" | "completed";

@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 
 class JoinLobbyRequest(BaseModel):
     displayName: Optional[str] = Field(default=None, max_length=20)
-    mode: Literal["multi", "bot"] = "multi"
+    mode: Literal["multi", "bot", "bot-advanced"] = "multi"
 
 
 class JoinLobbyResponse(BaseModel):

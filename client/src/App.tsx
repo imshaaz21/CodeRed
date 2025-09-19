@@ -7,13 +7,11 @@ import JoinForm from "./components/JoinForm";
 import Rack from "./components/Rack";
 import WarningBanner from "./components/WarningBanner";
 import { BOARD_SIZE } from "./lib/rules";
-import { BoardTile, Direction, GameStatePayload, PlacementDraft } from "./types";
+import { BoardTile, Direction, GameStatePayload, LobbyMode, PlacementDraft } from "./types";
 
 const boardKey = (row: number, col: number) => `${row}:${col}`;
 
 type Phase = "join" | "waiting" | "active";
-
-type ModeOption = "multi" | "bot";
 
 type WarningKind =
   | "INVALID_TURN"
@@ -97,7 +95,7 @@ const App = () => {
   const [busyAction, setBusyAction] = useState(false);
   const [passConfirmOpen, setPassConfirmOpen] = useState(false);
   const [now, setNow] = useState(() => Date.now());
-  const [matchMode, setMatchMode] = useState<ModeOption>("multi");
+  const [matchMode, setMatchMode] = useState<LobbyMode>("multi");
   const websocketRef = useRef<WebSocket | null>(null);
 
   const boardMap = useMemo(() => buildBoardMap(gameState?.board ?? []), [gameState]);
@@ -171,7 +169,7 @@ const App = () => {
   }, [gameState, boardMap]);
 
   const joinLobby = useCallback(
-    async (displayName: string, mode: ModeOption) => {
+    async (displayName: string, mode: LobbyMode) => {
       setPhase("waiting");
       setMatchMode(mode);
       try {
@@ -712,10 +710,18 @@ const App = () => {
       {phase === "join" && <JoinForm onJoin={joinLobby} busy={phase === "waiting"} />}
       {phase !== "join" && !gameState && (
         <div className="waiting">
-          <h2>{matchMode === "bot" ? "Preparing your bot opponent…" : "Waiting for an opponent…"}</h2>
+          <h2>
+            {matchMode === "bot"
+              ? "Preparing your bot opponent…"
+              : matchMode === "bot-advanced"
+              ? "Summoning the advanced bot strategist…"
+              : "Waiting for an opponent…"}
+          </h2>
           <p>
             {matchMode === "bot"
               ? "The bot is getting ready. This usually takes just a moment."
+              : matchMode === "bot-advanced"
+              ? "The advanced bot is evaluating opening lines—hang tight."
               : "Leave this tab open. You will be matched automatically once another player arrives."}
           </p>
         </div>

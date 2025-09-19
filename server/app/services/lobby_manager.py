@@ -52,7 +52,7 @@ class LobbyManager:
             entry = self._entries.get(player_id)
             if entry:
                 entry.connected = True
-        if entry and entry.mode == "bot":
+        if entry and entry.mode in {"bot", "bot-advanced"}:
             await self._start_bot_game(entry)
         else:
             await self._try_match()
@@ -112,7 +112,13 @@ class LobbyManager:
             if entry in self._waiting:
                 self._waiting.remove(entry)
 
-        game, bot_id = await self.bot_manager.create_bot_game(entry.player_id, entry.display_name or "Player")
+        bot_display = "Advanced Bot" if entry.mode == "bot-advanced" else "Bot"
+        strategy = "advanced" if entry.mode == "bot-advanced" else "basic"
+        game, bot_id = await self.bot_manager.create_bot_game(
+            entry.player_id,
+            entry.display_name or "Player",
+            bot_display,
+        )
         await self.clock_manager.start(game.id)
         await self.connection_manager.broadcast(
             [entry.player_id, bot_id],
@@ -127,4 +133,4 @@ class LobbyManager:
             },
         )
         await self._send_state(game)
-        await self.bot_manager.start(game.id, bot_id)
+        await self.bot_manager.start(game.id, bot_id, strategy=strategy)

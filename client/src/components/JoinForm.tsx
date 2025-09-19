@@ -1,15 +1,14 @@
 import { FormEvent, useState } from "react";
-
-type ModeOption = "multi" | "bot";
+import { LobbyMode } from "../types";
 
 interface JoinFormProps {
-  onJoin: (displayName: string, mode: ModeOption) => Promise<void>;
+  onJoin: (displayName: string, mode: LobbyMode) => Promise<void>;
   busy?: boolean;
 }
 
 const JoinForm = ({ onJoin, busy = false }: JoinFormProps) => {
   const [name, setName] = useState("");
-  const [mode, setMode] = useState<ModeOption>("multi");
+  const [mode, setMode] = useState<LobbyMode>("multi");
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -53,6 +52,17 @@ const JoinForm = ({ onJoin, busy = false }: JoinFormProps) => {
           />
           Challenge Bot
         </label>
+        <label>
+          <input
+            type="radio"
+            name="mode"
+            value="bot-advanced"
+            checked={mode === "bot-advanced"}
+            onChange={() => setMode("bot-advanced")}
+            disabled={busy}
+          />
+          Advanced Bot
+        </label>
       </div>
       <button type="submit" disabled={busy}>
         {busy ? "Joining…" : "Join Lobby"}
@@ -60,6 +70,8 @@ const JoinForm = ({ onJoin, busy = false }: JoinFormProps) => {
       <p className="hint">
         {mode === "bot"
           ? "The bot will join immediately after you connect."
+          : mode === "bot-advanced"
+          ? "The advanced bot will take a short moment to calculate moves."
           : "You will be matched automatically when another player joins."}
       </p>
     </form>

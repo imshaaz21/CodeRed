@@ -83,7 +83,8 @@ The Vite dev server proxies API (`/api/*`) and WebSocket (`/ws/*`) traffic to th
 ## Bot Mode
 
 - Selecting “Challenge Bot” in the lobby spins up a lightweight AI opponent that draws from the same tile bag and dictionary as humans.
-- The bot searches for quick legal moves by simulating candidate placements against the game engine; if no move is available it will pass.
+- Picking “Advanced Bot” launches a heuristic player that evaluates full-board placements, balances tile leave values, and prefers high-scoring plays.
+- Both bots search for legal moves by simulating candidate placements against the authoritative game engine; if no move is available they will pass.
 - A dedicated task keeps the bot responsive and ensures it plays within the 30-second budget per turn.
 
 ## Verification
