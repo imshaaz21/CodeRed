@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
 
 class JoinLobbyRequest(BaseModel):
     displayName: Optional[str] = Field(default=None, max_length=20)
+    mode: Literal["multi", "bot"] = "multi"
 
 
 class JoinLobbyResponse(BaseModel):

@@ -6,6 +6,7 @@ from collections import deque
 from dataclasses import dataclass
 from typing import Deque, Dict, Optional
 
+from .bot_manager import BotManager
 from .clock_manager import ClockManager
 from .connections import ConnectionManager
 from .game_manager import GameManager
@@ -16,24 +17,33 @@ class LobbyEntry:
     player_id: str
     display_name: str
     connected: bool = False
+    mode: str = "multi"
 
 
 class LobbyManager:
-    def __init__(self, connection_manager: ConnectionManager, game_manager: GameManager, clock_manager: ClockManager) -> None:
+    def __init__(
+        self,
+        connection_manager: ConnectionManager,
+        game_manager: GameManager,
+        clock_manager: ClockManager,
+        bot_manager: BotManager,
+    ) -> None:
         self.connection_manager = connection_manager
         self.game_manager = game_manager
         self.clock_manager = clock_manager
+        self.bot_manager = bot_manager
         self._waiting: Deque[LobbyEntry] = deque()
         self._entries: Dict[str, LobbyEntry] = {}
         self._lock = asyncio.Lock()
 
-    async def create_player(self, display_name: Optional[str] = None) -> LobbyEntry:
+    async def create_player(self, display_name: Optional[str] = None, mode: str = "multi") -> LobbyEntry:
         player_id = uuid.uuid4().hex
         fallback_name = f"Player-{player_id[:4]}"
         name = (display_name or fallback_name)[:20]
-        entry = LobbyEntry(player_id=player_id, display_name=name or fallback_name)
+        entry = LobbyEntry(player_id=player_id, display_name=name or fallback_name, mode=mode)
         async with self._lock:
-            self._waiting.append(entry)
+            if mode == "multi":
+                self._waiting.append(entry)
             self._entries[player_id] = entry
         return entry
 
@@ -42,7 +52,10 @@ class LobbyManager:
             entry = self._entries.get(player_id)
             if entry:
                 entry.connected = True
-        await self._try_match()
+        if entry and entry.mode == "bot":
+            await self._start_bot_game(entry)
+        else:
+            await self._try_match()
 
     async def leave(self, player_id: str) -> None:
         async with self._lock:
@@ -92,3 +105,26 @@ class LobbyManager:
                     player_id,
                     {"type": "state", "payload": game.to_player_view(player_id)},
                 )
+
+    async def _start_bot_game(self, entry: LobbyEntry) -> None:
+        async with self._lock:
+            self._entries.pop(entry.player_id, None)
+            if entry in self._waiting:
+                self._waiting.remove(entry)
+
+        game, bot_id = await self.bot_manager.create_bot_game(entry.player_id, entry.display_name or "Player")
+        await self.clock_manager.start(game.id)
+        await self.connection_manager.broadcast(
+            [entry.player_id, bot_id],
+            {
+                "type": "match_found",
+                "gameId": game.id,
+                "players": [
+                    {"playerId": pid, "displayName": game.players[pid].display_name}
+                    for pid in game.player_order
+                ],
+                "yourTurn": game.current_player_id,
+            },
+        )
+        await self._send_state(game)
+        await self.bot_manager.start(game.id, bot_id)

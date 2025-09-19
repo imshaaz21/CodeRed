@@ -13,6 +13,8 @@ const boardKey = (row: number, col: number) => `${row}:${col}`;
 
 type Phase = "join" | "waiting" | "active";
 
+type ModeOption = "multi" | "bot";
+
 type WarningKind =
   | "INVALID_TURN"
   | "INVALID_TILE"
@@ -95,6 +97,7 @@ const App = () => {
   const [busyAction, setBusyAction] = useState(false);
   const [passConfirmOpen, setPassConfirmOpen] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+  const [matchMode, setMatchMode] = useState<ModeOption>("multi");
   const websocketRef = useRef<WebSocket | null>(null);
 
   const boardMap = useMemo(() => buildBoardMap(gameState?.board ?? []), [gameState]);
@@ -168,14 +171,22 @@ const App = () => {
   }, [gameState, boardMap]);
 
   const joinLobby = useCallback(
-    async (displayName: string) => {
+    async (displayName: string, mode: ModeOption) => {
       setPhase("waiting");
-      const response = await axios.post<{ playerId: string }>("/api/lobby/join", {
-        displayName,
-      });
-      setPlayerId(response.data.playerId);
+      setMatchMode(mode);
+      try {
+        const response = await axios.post<{ playerId: string }>("/api/lobby/join", {
+          displayName,
+          mode,
+        });
+        setPlayerId(response.data.playerId);
+      } catch (error) {
+        console.error(error);
+        setPhase("join");
+        showWarning("SERVER_ERROR", "Could not join the lobby. Please try again.");
+      }
     },
-    []
+    [showWarning]
   );
 
   useEffect(() => {
@@ -698,11 +709,15 @@ const App = () => {
   return (
     <div className="app">
       <WarningBanner message={warning} />
-      {phase === "join" && <JoinForm onJoin={joinLobby} />}
+      {phase === "join" && <JoinForm onJoin={joinLobby} busy={phase === "waiting"} />}
       {phase !== "join" && !gameState && (
         <div className="waiting">
-          <h2>Waiting for an opponent…</h2>
-          <p>Leave this tab open. You will be matched automatically once another player arrives.</p>
+          <h2>{matchMode === "bot" ? "Preparing your bot opponent…" : "Waiting for an opponent…"}</h2>
+          <p>
+            {matchMode === "bot"
+              ? "The bot is getting ready. This usually takes just a moment."
+              : "Leave this tab open. You will be matched automatically once another player arrives."}
+          </p>
         </div>
       )}
       {phase === "active" && gameState && (

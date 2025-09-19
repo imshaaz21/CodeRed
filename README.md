@@ -59,8 +59,8 @@ The Vite dev server proxies API (`/api/*`) and WebSocket (`/ws/*`) traffic to th
 
 ## Gameplay Flow
 
-1. Open the frontend, enter a display name, and join the lobby.
-2. When a second player connects, the backend matches both players and streams the initial game state.
+1. Open the frontend, enter a display name, and choose between playing the bot or waiting for another human.
+2. When you pick multiplayer, a second player joining the lobby triggers match creation. Bot mode spins up an AI opponent instantly.
 3. On your turn:
    - Click an empty board square to choose a starting cell. Click it again (before typing) to toggle between horizontal/vertical.
    - Type letters on your keyboard to lay tiles. Occupied squares in the path are skipped automatically.
@@ -80,6 +80,12 @@ The Vite dev server proxies API (`/api/*`) and WebSocket (`/ws/*`) traffic to th
 - If a player’s time reaches zero, the server immediately ends the game, marks the opponent as winner by timeout, and the UI reflects the result.
 - The React client shows a synchronized countdown for both players using the server-provided `clocks` snapshot and `serverTime` timestamp.
 
+## Bot Mode
+
+- Selecting “Challenge Bot” in the lobby spins up a lightweight AI opponent that draws from the same tile bag and dictionary as humans.
+- The bot searches for quick legal moves by simulating candidate placements against the game engine; if no move is available it will pass.
+- A dedicated task keeps the bot responsive and ensures it plays within the 30-second budget per turn.
+
 ## Verification
 
 - `python -m compileall server` ✅
@@ -89,4 +95,4 @@ The Vite dev server proxies API (`/api/*`) and WebSocket (`/ws/*`) traffic to th
 
 - Add persistence (Redis/Postgres) to support server restarts.
 - Extend error handling with granular codes for richer client UX.
-- Stage 3: introduce the baseline bot opponent and share timing with the lobby.
+- Stage 4: evolve the bot with stronger heuristics and multi-turn planning.

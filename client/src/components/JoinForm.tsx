@@ -1,16 +1,19 @@
 import { FormEvent, useState } from "react";
 
+type ModeOption = "multi" | "bot";
+
 interface JoinFormProps {
-  onJoin: (displayName: string) => Promise<void>;
+  onJoin: (displayName: string, mode: ModeOption) => Promise<void>;
   busy?: boolean;
 }
 
 const JoinForm = ({ onJoin, busy = false }: JoinFormProps) => {
   const [name, setName] = useState("");
+  const [mode, setMode] = useState<ModeOption>("multi");
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    await onJoin(name.trim());
+    await onJoin(name.trim(), mode);
   };
 
   return (
@@ -26,10 +29,39 @@ const JoinForm = ({ onJoin, busy = false }: JoinFormProps) => {
           maxLength={20}
         />
       </label>
+      <div className="mode-selector">
+        <span>Choose mode:</span>
+        <label>
+          <input
+            type="radio"
+            name="mode"
+            value="multi"
+            checked={mode === "multi"}
+            onChange={() => setMode("multi")}
+            disabled={busy}
+          />
+          Play Online
+        </label>
+        <label>
+          <input
+            type="radio"
+            name="mode"
+            value="bot"
+            checked={mode === "bot"}
+            onChange={() => setMode("bot")}
+            disabled={busy}
+          />
+          Challenge Bot
+        </label>
+      </div>
       <button type="submit" disabled={busy}>
         {busy ? "Joining…" : "Join Lobby"}
       </button>
-      <p className="hint">You will be matched automatically when another player joins.</p>
+      <p className="hint">
+        {mode === "bot"
+          ? "The bot will join immediately after you connect."
+          : "You will be matched automatically when another player joins."}
+      </p>
     </form>
   );
 };
