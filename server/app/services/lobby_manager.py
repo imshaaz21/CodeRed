@@ -6,6 +6,7 @@ from collections import deque
 from dataclasses import dataclass
 from typing import Deque, Dict, Optional
 
+from .clock_manager import ClockManager
 from .connections import ConnectionManager
 from .game_manager import GameManager
 
@@ -18,9 +19,10 @@ class LobbyEntry:
 
 
 class LobbyManager:
-    def __init__(self, connection_manager: ConnectionManager, game_manager: GameManager) -> None:
+    def __init__(self, connection_manager: ConnectionManager, game_manager: GameManager, clock_manager: ClockManager) -> None:
         self.connection_manager = connection_manager
         self.game_manager = game_manager
+        self.clock_manager = clock_manager
         self._waiting: Deque[LobbyEntry] = deque()
         self._entries: Dict[str, LobbyEntry] = {}
         self._lock = asyncio.Lock()
@@ -68,6 +70,7 @@ class LobbyManager:
                     (second.player_id, second.display_name),
                 ]
             )
+            await self.clock_manager.start(game.id)
             await self.connection_manager.broadcast(
                 [first.player_id, second.player_id],
                 {

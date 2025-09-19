@@ -19,6 +19,12 @@ export interface MoveSummary {
   words: string[];
 }
 
+export interface GameResult {
+  winner: string;
+  loser: string;
+  reason: string;
+}
+
 export interface GameStatePayload {
   gameId: string;
   status: "active" | "completed";
@@ -38,6 +44,9 @@ export interface GameStatePayload {
     playerId: string;
     displayName: string;
   };
+  clocks: Record<string, number>;
+  serverTime: string;
+  result: GameResult | null;
 }
 
 export type Direction = "horizontal" | "vertical";

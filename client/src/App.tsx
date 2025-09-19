@@ -94,6 +94,7 @@ const App = () => {
   const [exchangeSelection, setExchangeSelection] = useState<number[]>([]);
   const [busyAction, setBusyAction] = useState(false);
   const [passConfirmOpen, setPassConfirmOpen] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
   const websocketRef = useRef<WebSocket | null>(null);
 
   const boardMap = useMemo(() => buildBoardMap(gameState?.board ?? []), [gameState]);
@@ -125,6 +126,30 @@ const App = () => {
   }, [gameState, playerId]);
 
   const usedRackIndices = useMemo(() => placements.map((placement) => placement.rackIndex), [placements]);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setNow(Date.now());
+    }, 250);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  const effectiveClocks = useMemo(() => {
+    if (!gameState) {
+      return {} as Record<string, number>;
+    }
+    const snapshot: Record<string, number> = { ...gameState.clocks };
+    const serverTimestamp = Date.parse(gameState.serverTime);
+    if (!Number.isNaN(serverTimestamp) && gameState.status === "active") {
+      const deltaSeconds = (now - serverTimestamp) / 1000;
+      if (deltaSeconds > 0) {
+        const activePlayer = gameState.turn;
+        const baseline = snapshot[activePlayer] ?? 0;
+        snapshot[activePlayer] = Math.max(0, baseline - deltaSeconds);
+      }
+    }
+    return snapshot;
+  }, [gameState, now]);
 
   useEffect(() => {
     if (!gameState) {
@@ -530,6 +555,34 @@ const App = () => {
     []
   );
 
+  const formatClock = useCallback((seconds?: number) => {
+    const safe = Math.max(0, Math.ceil(seconds ?? 0));
+    const minutes = Math.floor(safe / 60)
+      .toString()
+      .padStart(2, "0");
+    const secs = (safe % 60).toString().padStart(2, "0");
+    return `${minutes}:${secs}`;
+  }, []);
+
+  const resultMessage = useMemo(() => {
+    if (!gameState || gameState.status !== "completed" || !gameState.result) {
+      return null;
+    }
+    if (gameState.result.reason === "timeout") {
+      if (playerId && gameState.result.loser === playerId) {
+        return "You ran out of time.";
+      }
+      return `${gameState.opponent.displayName} ran out of time.`;
+    }
+    return null;
+  }, [gameState, playerId]);
+
+  const myClock = playerId ? effectiveClocks[playerId] : undefined;
+  const opponentClock = gameState ? effectiveClocks[gameState.opponent.playerId] : undefined;
+  const opponentTurn = gameState ? gameState.turn === gameState.opponent.playerId : false;
+  const myClockClass = isMyTurn && gameState?.status === "active" ? "clock-value clock-value--active" : "clock-value";
+  const opponentClockClass = opponentTurn && gameState?.status === "active" ? "clock-value clock-value--active" : "clock-value";
+
   const handleTileDrop = useCallback(
     ({ row, col, rackIndex, letter, isBlank }: DroppedTilePayload) => {
       if (!isMyTurn) {
@@ -660,15 +713,25 @@ const App = () => {
               <p>
                 You: <strong>{myScore}</strong>
               </p>
+              <p className="clock-row">
+                Your clock: <span className={myClockClass}>{formatClock(myClock)}</span>
+              </p>
               <p>
                 {gameState.opponent.displayName}: <strong>{opponentScore}</strong>
+              </p>
+              <p className="clock-row">
+                {gameState.opponent.displayName}'s clock: <span className={opponentClockClass}>{formatClock(opponentClock)}</span>
               </p>
               <p>Bag tiles: {gameState.bagCount}</p>
               <p>Turn: {gameState.turnNumber}</p>
               <p className={isMyTurn ? "turn-indicator turn-indicator--active" : "turn-indicator"}>
                 {isMyTurn ? "Your turn" : `${gameState.opponent.displayName}'s turn`}
               </p>
-              {gameState.status === "completed" && <p className="game-complete">Game over</p>}
+              {gameState.status === "completed" && (
+                <p className="game-complete">
+                  Game over{resultMessage ? ` — ${resultMessage}` : ""}
+                </p>
+              )}
             </section>
             <section className="history">
               <h3>Moves</h3>

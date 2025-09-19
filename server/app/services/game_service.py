@@ -34,7 +34,7 @@ class GameService:
                 move_record = game.play_move(player_id, placements)
             except MoveError as exc:
                 raise HTTPException(status_code=400, detail=str(exc)) from exc
-            await self._push_state(game, highlight=move_record.move_type)
+            await self.push_state(game, highlight=move_record.move_type)
             return {
                 "score": move_record.score,
                 "words": move_record.words,
@@ -51,7 +51,7 @@ class GameService:
                 move_record = game.pass_turn(player_id)
             except MoveError as exc:
                 raise HTTPException(status_code=400, detail=str(exc)) from exc
-            await self._push_state(game, highlight=move_record.move_type)
+            await self.push_state(game, highlight=move_record.move_type)
             return {"status": game.status, "turn": game.current_player_id}
 
     async def exchange_tiles(self, game_id: str, player_id: str, letters: Sequence[str]) -> dict:
@@ -63,7 +63,7 @@ class GameService:
                 move_record = game.exchange_tiles(player_id, letters)
             except MoveError as exc:
                 raise HTTPException(status_code=400, detail=str(exc)) from exc
-            await self._push_state(game, highlight=move_record.move_type)
+            await self.push_state(game, highlight=move_record.move_type)
             return {"status": game.status, "turn": game.current_player_id}
 
     async def refresh_state(self, game_id: str, player_id: str) -> dict:
@@ -71,7 +71,7 @@ class GameService:
         self._ensure_player(game, player_id)
         return game.to_player_view(player_id)
 
-    async def _push_state(self, game: Game, highlight: str | None = None) -> None:
+    async def push_state(self, game: Game, highlight: str | None = None) -> None:
         payloads = []
         for player_id in game.player_order:
             payloads.append(

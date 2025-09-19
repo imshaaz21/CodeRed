@@ -73,6 +73,13 @@ The Vite dev server proxies API (`/api/*`) and WebSocket (`/ws/*`) traffic to th
    - Use the shuffle button for a random arrangement.
 5. The sidebar shows scores, bag count, and move history. All warnings for invalid actions (wrong turn, missing tiles, off-board words, missing start) appear inline.
 
+## Game Clock
+
+- Each player receives 10 minutes (600 seconds) per game. The FastAPI server owns the clock and decrements it once per second.
+- When a game starts, a background task in the server keeps the active player's clock in sync and pushes WebSocket updates. Clients never run their own authoritative timers.
+- If a player’s time reaches zero, the server immediately ends the game, marks the opponent as winner by timeout, and the UI reflects the result.
+- The React client shows a synchronized countdown for both players using the server-provided `clocks` snapshot and `serverTime` timestamp.
+
 ## Verification
 
 - `python -m compileall server` ✅
@@ -82,4 +89,4 @@ The Vite dev server proxies API (`/api/*`) and WebSocket (`/ws/*`) traffic to th
 
 - Add persistence (Redis/Postgres) to support server restarts.
 - Extend error handling with granular codes for richer client UX.
-- Stage 2: add secure server-side chess clocks synchronized to clients.
+- Stage 3: introduce the baseline bot opponent and share timing with the lobby.

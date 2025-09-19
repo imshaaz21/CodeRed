@@ -143,6 +143,23 @@ body {
   overflow-y: auto;
 }
 
+.clock-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0.2rem 0;
+  color: #475569;
+}
+
+.clock-value {
+  font-weight: 700;
+  font-family: "JetBrains Mono", "Roboto Mono", monospace;
+}
+
+.clock-value--active {
+  color: #2563eb;
+}
+
 .history li {
   font-size: 0.9rem;
   color: #475569;

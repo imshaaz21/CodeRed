@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from ..models.game import Placement
+from ..services.clock_manager import ClockManager
 from ..services.connections import ConnectionManager
 from ..services.game_manager import GameManager
 from ..services.game_service import GameService
@@ -20,7 +21,8 @@ router = APIRouter(prefix="/api")
 connections = ConnectionManager()
 game_manager = GameManager()
 game_service = GameService(game_manager, connections)
-lobby_manager = LobbyManager(connections, game_manager)
+clock_manager = ClockManager(game_manager, game_service)
+lobby_manager = LobbyManager(connections, game_manager, clock_manager)
 
 
 @router.post("/lobby/join", response_model=JoinLobbyResponse)

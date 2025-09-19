@@ -18,6 +18,8 @@ from ..core.dictionary import get_dictionary
 
 Coordinate = Tuple[int, int]
 
+TURN_TIME_LIMIT_SECONDS = 10 * 60
+
 
 @dataclass
 class Tile:
@@ -102,6 +104,12 @@ class Game:
         self.turn_number = 1
         self.status: str = "active"
         self.passes_in_a_row = 0
+        self.clock_remaining: Dict[str, float] = {
+            player_id: float(TURN_TIME_LIMIT_SECONDS)
+            for player_id in self.player_order
+        }
+        self.turn_started_at: datetime = datetime.utcnow()
+        self.result: Optional[Dict[str, str]] = None
 
         for player in self.players.values():
             self._draw_tiles(player, limit=7)
@@ -125,6 +133,57 @@ class Game:
         for _ in range(min(needed, len(self.tile_bag))):
             player.rack.append(self.tile_bag.pop())
 
+    def _sync_active_clock(self, *, now: Optional[datetime] = None) -> bool:
+        if self.status != "active":
+            return False
+        now = now or datetime.utcnow()
+        elapsed = (now - self.turn_started_at).total_seconds()
+        if elapsed <= 0:
+            return False
+        current_player = self.current_player_id
+        remaining = max(0.0, self.clock_remaining[current_player] - elapsed)
+        clock_changed = abs(remaining - self.clock_remaining[current_player]) > 1e-6
+        self.clock_remaining[current_player] = remaining
+        self.turn_started_at = now
+        if remaining <= 0:
+            self._handle_timeout(current_player)
+            clock_changed = True
+        return clock_changed
+
+    def sync_clock(self, *, now: Optional[datetime] = None) -> bool:
+        return self._sync_active_clock(now=now)
+
+    def _handle_timeout(self, timed_out_player: str) -> None:
+        if self.status != "active":
+            return
+        opponent_id = next(pid for pid in self.player_order if pid != timed_out_player)
+        self.status = "completed"
+        self.result = {
+            "winner": opponent_id,
+            "loser": timed_out_player,
+            "reason": "timeout",
+        }
+        self.move_history.append(
+            MoveRecord(
+                turn_number=self.turn_number,
+                player_id=timed_out_player,
+                move_type="timeout",
+                placements=[],
+                score=0,
+                words=[],
+            )
+        )
+
+    def _clock_snapshot(self, *, now: Optional[datetime] = None) -> Dict[str, float]:
+        snapshot = {player_id: max(0.0, remaining) for player_id, remaining in self.clock_remaining.items()}
+        if self.status == "active":
+            reference = now or datetime.utcnow()
+            elapsed = (reference - self.turn_started_at).total_seconds()
+            if elapsed > 0:
+                current_player = self.current_player_id
+                snapshot[current_player] = max(0.0, snapshot[current_player] - elapsed)
+        return snapshot
+
     # ------------------------------------------------------------------
     # Turn helpers
     # ------------------------------------------------------------------
@@ -135,11 +194,14 @@ class Game:
     def _advance_turn(self) -> None:
         self.turn_index = (self.turn_index + 1) % len(self.player_order)
         self.turn_number += 1
+        if self.status == "active":
+            self.turn_started_at = datetime.utcnow()
 
     # ------------------------------------------------------------------
     # Move execution
     # ------------------------------------------------------------------
     def play_move(self, player_id: str, placements: Sequence[Placement]) -> MoveRecord:
+        self._sync_active_clock()
         if self.status != "active":
             raise MoveError("Game is not active")
         if player_id != self.current_player_id:
@@ -176,6 +238,7 @@ class Game:
         return move_record
 
     def pass_turn(self, player_id: str) -> MoveRecord:
+        self._sync_active_clock()
         if self.status != "active":
             raise MoveError("Game is not active")
         if player_id != self.current_player_id:
@@ -198,6 +261,7 @@ class Game:
         return move_record
 
     def exchange_tiles(self, player_id: str, letters: Sequence[str]) -> MoveRecord:
+        self._sync_active_clock()
         if self.status != "active":
             raise MoveError("Game is not active")
         if player_id != self.current_player_id:
@@ -476,6 +540,8 @@ class Game:
         player = self.players[player_id]
         opponent_id = next(pid for pid in self.player_order if pid != player_id)
         opponent = self.players[opponent_id]
+        clock_snapshot = self._clock_snapshot()
+        server_time = datetime.utcnow().isoformat() + "Z"
 
         board_cells = [
             {
@@ -525,4 +591,10 @@ class Game:
                 "playerId": player.player_id,
                 "displayName": player.display_name,
             },
+            "clocks": {
+                player_id: int(clock_snapshot.get(player_id, 0)),
+                opponent_id: int(clock_snapshot.get(opponent_id, 0)),
+            },
+            "serverTime": server_time,
+            "result": self.result,
         }
