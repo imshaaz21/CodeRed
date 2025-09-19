@@ -47,6 +47,10 @@ Key backend features:
 - Support for concurrent games; each game guarded by its own asyncio lock
 - Authoritative tile bag and rack management (randomized draws, blank tracking)
 
+## Architecture Diagram
+![img.png](architecture.png)
+
+
 ## Frontend Setup
 
 ```bash
